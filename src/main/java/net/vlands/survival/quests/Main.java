@@ -14,13 +14,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
 public final class Main extends JavaPlugin {
 
-    private final HashMap<UUID, Player> registeredPlayers = new HashMap<>();
+    private HashMap<UUID, Player> registeredPlayers = new HashMap<>();
     @Getter private QuestsManager manager;
     private MenuCreator menuCreator;
     @Getter private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -44,6 +45,28 @@ public final class Main extends JavaPlugin {
 
         System.out.println(registeredPlayers);
     }
+
+    private void toJson() {
+        try {
+            String json = gson.toJson(registeredPlayers);
+            java.nio.file.Files.writeString(path, json);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void fromJson() {
+        try {
+            Reader reader = Files.newBufferedReader(path);
+            HashMap<UUID, Player> playerHashMap = gson.fromJson(reader, HashMap.class);
+            if (playerHashMap != null) {
+                registeredPlayers = playerHashMap;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private void registerPlayer(UUID uuid) {
         if (!registeredPlayers.containsKey(uuid)) {
