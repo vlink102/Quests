@@ -8,6 +8,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.UUID;
 
 public class PlayerQuest {
@@ -77,9 +78,9 @@ public class PlayerQuest {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        lore.forEach(component -> sb.append(((TextComponent) component).content()));
-        return "{" + quest.toString() + ", " + bind + ", " + status.toString() + ", " + value + ", " + max + sb + "}";
+        StringJoiner joiner = new StringJoiner(",");
+        lore.forEach(component -> joiner.add(((TextComponent) component).content()));
+        return "{" + quest.toString() + ", " + bind + ", " + status.toString() + ", " + value + ", " + max + ", {" + joiner + "}}";
     }
 
     public ItemStack toItemStack() {

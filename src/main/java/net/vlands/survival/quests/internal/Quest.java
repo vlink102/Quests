@@ -1,6 +1,7 @@
 package net.vlands.survival.quests.internal;
 
 import java.util.Arrays;
+import java.util.StringJoiner;
 
 public abstract class Quest {
     private final String internalName;
@@ -30,8 +31,8 @@ public abstract class Quest {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        Arrays.stream(rewards).forEach(builder::append);
-        return "{" + internalName + ", " + prettyName + ", " + objective.toString() + ", " + builder + "}";
+        StringJoiner joiner = new StringJoiner(",");
+        Arrays.stream(rewards).forEach(reward -> joiner.add(reward.toString()));
+        return "{" + internalName + ", " + prettyName + ", " + objective.toString() + ", " + joiner + "}";
     }
 }

@@ -41,6 +41,8 @@ public final class Main extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(player -> registerPlayer(player.getUniqueId()));
 
         // save data to json file every 30 seconds or something
+
+        System.out.println(registeredPlayers);
     }
 
     private void registerPlayer(UUID uuid) {

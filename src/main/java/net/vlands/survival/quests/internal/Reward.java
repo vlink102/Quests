@@ -60,8 +60,6 @@ public class Reward {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-
         return "{" + type.toString() + ", {" + (itemStack == null ? "null" : itemStack.toString()) + "}, " + amount + ", " + (expType == null ? "null" : expType.toString()) + ", " + number + ", " + (potionEffect == null ? "null" : potionEffect.toString()) + "}";
     }
 }
