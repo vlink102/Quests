@@ -1,0 +1,15 @@
+name: Quests
+version: '${project.version}'
+main: net.vlands.survival.quests.Main
+api-version: 1.19
+prefix: VLands
+authors: [ V_Link ]
+description: Quests for VLands Survival
+website: https://vlands.net/
+commands:
+  quest:
+    description: VLands Survival quests command
+    usage: /<command>
+  quests:
+    description: VLands Survival quests command
+    usage: /<command>
