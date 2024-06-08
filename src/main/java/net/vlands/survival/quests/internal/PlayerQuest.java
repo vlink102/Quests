@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.activated.core.plugin.AquaCoreAPI;
 import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.context.ContextSet;
 import net.luckperms.api.context.DefaultContextKeys;
 import net.luckperms.api.model.data.DataMutateResult;
@@ -37,7 +38,7 @@ public class PlayerQuest {
     public enum Status {
         COMPLETED(Material.LIME_STAINED_GLASS_PANE),
         CLAIMED(Material.GREEN_STAINED_GLASS_PANE),
-        VIEWABLE(Material.GRAY_STAINED_GLASS_PANE),
+        VIEWABLE(Material.WHITE_STAINED_GLASS_PANE),
         HIDDEN(Material.RED_STAINED_GLASS_PANE),
         UNRELEASED(Material.BLACK_STAINED_GLASS_PANE),
         IN_PROGRESS(Material.YELLOW_STAINED_GLASS_PANE);
@@ -47,7 +48,6 @@ public class PlayerQuest {
         Status(Material material) {
             this.material = material;
         }
-
     }
 
     @Getter
@@ -78,58 +78,52 @@ public class PlayerQuest {
             status = Status.COMPLETED;
             return;
         }
+        if (thisPlayer.getCompletedQuestsVal() >= quest.getUnlockCount()) {
+            if (status == Status.HIDDEN) {
+                status = (value > 0 ? Status.IN_PROGRESS : Status.VIEWABLE);
+
+                if (player != null && player.isOnline()) {
+                    this.updateLore();
+                    player.sendMessage(Util.colorize("&d ◇ &bQuest Unlocked: &8'" + description + "&8'&a."));
+                    if (quest.getUnlockCount() != 0) {
+                        Util.playExperienceOrbSound(player);
+                    }
+                } else {
+                    thisPlayer.addJoinQuest(this);
+                }
+                updatePlayerQuests(plugin, thisPlayer);
+            } else {
+                status = (value > 0 ? Status.IN_PROGRESS : Status.VIEWABLE);
+            }
+        } else {
+            status = Status.HIDDEN;
+        }
+
         if (value >= quest.getObjective().getMaxValue()) {
             status = Status.COMPLETED;
             thisPlayer.addCompletedQuest(this);
             if (player != null) {
                 if (player.isOnline()) {
                     player.sendMessage(Util.colorize("&b ◇ &aQuest Complete: &8'" + description + "&8'&a."));
-                    player.getWorld().playSound(player, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                    Util.playExperienceOrbSound(player);
                 } else {
                     thisPlayer.addJoinQuest(this);
                 }
-                updateHidden(plugin, thisPlayer);
             }
-            return;
+
+            updatePlayerQuests(plugin, thisPlayer);
         }
-        if (thisPlayer.getCompletedQuestsVal() >= quest.getUnlockCount()) {
-            if (status == Status.HIDDEN) {
-                status = Status.VIEWABLE;
-                generateQuestLore(bind);
-                if (player != null) {
-                    if (player.isOnline()) {
-                        player.sendMessage(Util.colorize("&d ◇ &bQuest Unlocked: &8'" + description + "&8'&a."));
-                        if (quest.getUnlockCount() != 0) {
-                            player.getWorld().playSound(player, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-                        }
-                    } else {
-                        thisPlayer.addJoinQuest(this);
-                    }
-                }
-            } else {
-                if (thisPlayer.getActiveQuests().contains(this)) {
-                    //int maxValue = this.quest.getObjective().getMaxValue();
-                    status = (value >= 0 ? Status.IN_PROGRESS : Status.VIEWABLE);
-                } else {
-                    plugin.log("&4Player has value on hidden quest, setting to viewable");
-                    status = Status.VIEWABLE;
-                }
-            }
-        } else {
-            status = Status.HIDDEN;
-        }
+
+
+
     }
 
-    public static void updateHidden(Main plugin, net.vlands.survival.quests.internal.Player thisPlayer) {
+    public static void updatePlayerQuests(Main plugin, net.vlands.survival.quests.internal.Player thisPlayer) {
         for (PlayerQuest playerQuest : thisPlayer.getQuestList()) {
-            if (playerQuest.getStatus() == Status.HIDDEN) {
-                playerQuest.updateStatus(plugin, playerQuest.getBind());
-            }
+            playerQuest.updateStatus(plugin, playerQuest.getBind());
         }
         for (PlayerLoot playerLoot : thisPlayer.getLootList()) {
-            if (playerLoot.getStatus() == PlayerLoot.Status.HIDDEN) {
-                playerLoot.updateStatus(plugin, playerLoot.getBind());
-            }
+            playerLoot.updateStatus(plugin, playerLoot.getBind());
         }
     }
 
@@ -196,7 +190,7 @@ public class PlayerQuest {
                                 player.getWorld().playSound(player, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE_FAR, 1, 1);
                             }
                         } else if (plugin.isLuckPerms()) {
-                            LuckPerms perms = plugin.getLuckPermsInstance();
+                            LuckPerms perms = LuckPermsProvider.get();
                             User user = perms.getPlayerAdapter(Player.class).getUser(player);
                             Node node = Node.builder(permissionReward.getPermission())
                                     .withContext(DefaultContextKeys.SERVER_KEY, Main.SERVER_ID)
@@ -212,7 +206,7 @@ public class PlayerQuest {
                     }
                 }
             }
-            player.getWorld().playSound(player, Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+            Util.playLevelupSound(player);
         }
         player.sendMessage(Util.colorize("&9&m---------------------------------"));
     }
@@ -378,7 +372,7 @@ public class PlayerQuest {
         } else if (reward instanceof PotionEffectReward) {
             return (Util.colorize("&6 - " + EffectColor.valueOf(((PotionEffectReward)reward).getPotionType().getName()).getColor() + EffectColor.valueOf(((PotionEffectReward)reward).getPotionType().getName()).getReadableName() + " " + ((PotionEffectReward)reward).getFormattedAmplifier() + " &7(&a" + ((PotionEffectReward)reward).getFormattedDuration() + "&as&7)"));
         } else if (reward instanceof PermissionReward permissionReward) {
-            return Main.getPlugin(Main.class).isAquaCore() ? Util.colorize("&b - " + permissionReward.getDescription()) : Util.colorize("&b - &4Error, reward unavailable.");
+            return (Main.getPlugin(Main.class).isAquaCore() || Main.getPlugin(Main.class).isLuckPerms()) ? Util.colorize("&b - " + permissionReward.getDescription()) : Util.colorize("&b - &4Error, reward unavailable.");
         }
         return null;
     }
@@ -420,7 +414,7 @@ public class PlayerQuest {
 
         switch (status) {
             case HIDDEN -> lore.add(Util.colorize("&8Complete &a" + (quest.getUnlockCount() - Main.getPlugin(Main.class).getRegisteredPlayers().get(bind).getCompletedQuestsVal()) + " &8more quests."));
-            case VIEWABLE -> {
+            case VIEWABLE, IN_PROGRESS -> {
                 lore.add(Util.colorize("&7Progress: " + Util.colorPercent(percent) + value + "&7/&a" + max + " &8(" + Util.colorPercent(percent) + roundedPercent + "%&8)"));
                 lore.add(Util.colorize("&6[" + Util.getProgressBar(value, max, 50, '|') + "&6]"));
             }

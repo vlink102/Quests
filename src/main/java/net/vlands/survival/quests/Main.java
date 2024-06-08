@@ -47,9 +47,6 @@ import java.util.*;
 public final class Main extends JavaPlugin implements Listener {
 
     @Getter
-    private LuckPerms luckPermsInstance;
-
-    @Getter
     public enum PermissionsManager {
         AQUA_CORE("setperm %player% %permission% true " + SERVER_ID),
         LUCKPERMS("lp user %player% permission set %permission% true " + SERVER_ID);
@@ -89,21 +86,23 @@ public final class Main extends JavaPlugin implements Listener {
     private final ConsoleCommandSender consoleCommandSender = Bukkit.getConsoleSender();
 
     private void loadDependencies() {
-        luckPerms = getServer().getPluginManager().getPlugin("LuckPerms") != null;
-        if (luckPerms) {
-            log("Hooked onto LuckPerms! - Permission System");
-            RegisteredServiceProvider<LuckPerms> provider = Bukkit.getServicesManager().getRegistration(LuckPerms.class);
-            if (provider != null) luckPermsInstance = provider.getProvider();
-
-        } else {
-            getLogger().severe("No LuckPerms dependency found, permission rewards disabled");
-        }
-
-        aquaCore = getServer().getPluginManager().getPlugin("AquaCore") != null;
-        if (aquaCore) {
-            log("Hooked onto AquaCore! - Permission System.");
-        } else {
-            getLogger().severe("No AquaCore dependency found, permission rewards disabled.");
+        switch (preferredManager) {
+            case LUCKPERMS -> {
+                luckPerms = getServer().getPluginManager().getPlugin("LuckPerms") != null;
+                if (luckPerms) {
+                    log("Hooked onto LuckPerms! - Permission System");
+                } else {
+                    getLogger().severe("No LuckPerms dependency found, permission rewards disabled");
+                }
+            }
+            case AQUA_CORE -> {
+                aquaCore = getServer().getPluginManager().getPlugin("AquaCore") != null;
+                if (aquaCore) {
+                    log("Hooked onto AquaCore! - Permission System.");
+                } else {
+                    getLogger().severe("No AquaCore dependency found, permission rewards disabled.");
+                }
+            }
         }
     }
 
@@ -117,8 +116,8 @@ public final class Main extends JavaPlugin implements Listener {
         number = new RomanNumber();
 
         registerListeners();
-        registerDevQuests();
-        //registerQuests();
+        //registerDevQuests();
+        registerQuests();
         registerCommands();
 
         generateDataFiles();
@@ -334,12 +333,14 @@ public final class Main extends JavaPlugin implements Listener {
 
             playerFile.set("quests.claimed", null);
             playerFile.set("quests.active", null);
+            playerFile.set("quests.progress", null);
             playerFile.set("quests.completed", null);
 
             for (PlayerQuest quest : player.getQuestList()) {
                 switch (quest.getStatus()) {
                     case CLAIMED -> playerFile.set("quests.claimed." + quest.getQuest().getInternalName(), quest.getValue());
                     case VIEWABLE -> playerFile.set("quests.active." + quest.getQuest().getInternalName(), quest.getValue());
+                    case IN_PROGRESS -> playerFile.set("quests.progress." + quest.getQuest().getInternalName(), quest.getValue());
                     case COMPLETED -> playerFile.set("quests.completed." + quest.getQuest().getInternalName(), quest.getValue());
                 }
             }
@@ -400,6 +401,7 @@ public final class Main extends JavaPlugin implements Listener {
 
                     Section active = playerFile.getSection("quests.active");
                     Section completed = playerFile.getSection("quests.completed");
+                    Section progress = playerFile.getSection("quests.progress");
                     Section claimed = playerFile.getSection("quests.claimed");
 
                     List<String> lootComplete = playerFile.getStringList("loot.complete");
@@ -411,6 +413,16 @@ public final class Main extends JavaPlugin implements Listener {
                                 if (key.toString().equalsIgnoreCase(quest.getQuest().getInternalName())) {
                                     quest.setValue(playerFile.getInt("quests.active." + key));
                                     quest.setStatus(PlayerQuest.Status.VIEWABLE);
+                                    player.getActiveQuests().add(quest);
+                                    break;
+                                }
+                            }
+                        }
+                        if (progress != null) {
+                            for (Object key : progress.getKeys()) {
+                                if (key.toString().equalsIgnoreCase(quest.getQuest().getInternalName())) {
+                                    quest.setValue(playerFile.getInt("quests.progress." + key));
+                                    quest.setStatus(PlayerQuest.Status.IN_PROGRESS);
                                     player.getActiveQuests().add(quest);
                                     break;
                                 }

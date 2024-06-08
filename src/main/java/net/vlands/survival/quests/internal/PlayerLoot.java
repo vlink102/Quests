@@ -2,6 +2,7 @@ package net.vlands.survival.quests.internal;
 
 import me.activated.core.plugin.AquaCoreAPI;
 import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.context.DefaultContextKeys;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.user.User;
@@ -96,7 +97,7 @@ public class PlayerLoot {
             if (player != null) {
                 if (player.isOnline()) {
                     player.sendMessage(Util.colorize("&d ◇ &bLoot Milestone Unlocked!"));
-                    player.getWorld().playSound(player, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                    Util.playExperienceOrbSound(player);
                 } else {
                     thisPlayer.addJoinLoot(this);
                 }
@@ -150,7 +151,7 @@ public class PlayerLoot {
 
                         player.removePotionEffect(potionEffectReward.getPotionType());
                         player.addPotionEffect(new PotionEffect(potionEffectReward.getPotionType(), (potionEffectReward.getDuration(false)) + duration, level));
-                        player.sendMessage(Util.colorize(PlayerQuest.getRewardString(potionEffectReward) + "&8 (+" + potionEffectReward.getFormattedDuration() + "s)" + (level > existingAmplifier ? "&8 (+" + (level - existingAmplifier) + " " + Util.toPlural("level", (level - existingAmplifier)) + ")" : "")));
+                        player.sendMessage(Util.colorize(PlayerQuest.getRewardString(potionEffectReward) + "&8 (+" + potionEffectReward.getFormattedDuration() + ")" + (level > existingAmplifier ? "&8 (+" + (level - existingAmplifier) + " " + Util.toPlural("level", (level - existingAmplifier)) + ")" : "")));
                     }
                 }
                 if (object instanceof PermissionReward permissionReward) {
@@ -169,7 +170,7 @@ public class PlayerLoot {
                                 player.getWorld().playSound(player, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE_FAR, 1, 1);
                             }
                         } else if (plugin.isLuckPerms()) {
-                            LuckPerms perms = plugin.getLuckPermsInstance();
+                            LuckPerms perms = LuckPermsProvider.get();
                             User user = perms.getPlayerAdapter(Player.class).getUser(player);
                             Node node = Node.builder(permissionReward.getPermission())
                                     .withContext(DefaultContextKeys.SERVER_KEY, Main.SERVER_ID)
@@ -185,7 +186,7 @@ public class PlayerLoot {
                     }
                 }
             }
-            player.getWorld().playSound(player, Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+            Util.playLevelupSound(player);
         }
         player.sendMessage(Util.colorize("&6&m---------------------------------"));
     }

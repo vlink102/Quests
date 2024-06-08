@@ -56,7 +56,7 @@ public class Player {
 
         questList.forEach(quest -> {
             switch (quest.getStatus()) {
-                case VIEWABLE -> {
+                case VIEWABLE, IN_PROGRESS -> {
                     if (!activeQuests.contains(quest)) {
                         activeQuests.add(quest);
                     }

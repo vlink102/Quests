@@ -6,7 +6,7 @@
 
     <groupId>net.vlands.survival.quests</groupId>
     <artifactId>Quests</artifactId>
-    <version>VLands-1.0.8</version>
+    <version>VLands-1.2.0-astral</version>
     <packaging>jar</packaging>
 
     <name>Quests</name>

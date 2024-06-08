@@ -311,13 +311,13 @@ public class DailyCreator {
             double hours = (Util.timeTillMidnightInMs()) / 1000.0 / 60.0 / 60.0;
             if (vPlayer.getRerollCount() == 0) {
                 player.sendMessage(Util.colorize("&cYou've already used all your rerolls!"));
-                player.sendMessage(Util.colorize("&cGet more in " + MathUtils.round(24f - (float) hours) + "&c hours. &7(&e" + Util.displayNextTime() + "&7)"));
-                player.getWorld().playSound(player, Sound.ENTITY_WOLF_HOWL, 1, 1);
+                player.sendMessage(Util.colorize("&cGet more in &e" + Util.displayNextTime() + "&c."));
+                Util.playWolfHowl(player);
             } else {
                 vPlayer.decreaseReroll();
                 dailyRewards.get(player.getUniqueId()).randomizeItems(vPlayer);
                 updateAllItems(gui, vPlayer);
-                player.getWorld().playSound(player, Sound.BLOCK_ANVIL_USE, 1, 1);
+                Util.playAnvilHit(player);
                 player.sendMessage(Util.colorize("&aYou rerolled your daily items! You have &6" + vPlayer.getRerollCount() + "&a rerolls left."));
             }
         });
@@ -328,13 +328,13 @@ public class DailyCreator {
             double hours = (Util.timeTillMidnightInMs()) / 1000.0 / 60.0 / 60.0;
             if (vPlayer.getRerollCount() == 0) {
                 player.sendMessage(Util.colorize("&cYou've already used all your rerolls!"));
-                player.sendMessage(Util.colorize("&cGet more in " + MathUtils.round(24f - (float) hours) + "&c hours. &7(&e" + Util.displayNextTime() + "&7)"));
+                player.sendMessage(Util.colorize("&cGet more in &e" + Util.displayNextTime() + "&c."));
                 player.getWorld().playSound(player, Sound.ENTITY_WOLF_HOWL, 1, 1);
             } else {
                 vPlayer.decreaseReroll();
                 dailyRewards.get(player.getUniqueId()).randomizeExp(vPlayer);
                 updateAllItems(gui, vPlayer);
-                player.getWorld().playSound(player, Sound.BLOCK_ANVIL_USE, 1, 1);
+                Util.playAnvilHit(player);
                 player.sendMessage(Util.colorize("&aYou rerolled your daily exp! You have &6" + vPlayer.getRerollCount() + "&a rerolls left."));
             }
         });
@@ -345,13 +345,13 @@ public class DailyCreator {
             double hours = (Util.timeTillMidnightInMs()) / 1000.0 / 60.0 / 60.0;
             if (vPlayer.getRerollCount() == 0) {
                 player.sendMessage(Util.colorize("&cYou've already used all your rerolls!"));
-                player.sendMessage(Util.colorize("&cGet more in " + MathUtils.round(24f - (float) hours) + "&c hours. &7(&e" + Util.displayNextTime() + "&7)"));
+                player.sendMessage(Util.colorize("&cGet more in &e" + Util.displayNextTime() + "&c."));
                 player.getWorld().playSound(player, Sound.ENTITY_WOLF_HOWL, 1, 1);
             } else {
                 vPlayer.decreaseReroll();
                 dailyRewards.get(player.getUniqueId()).randomizeEffects(vPlayer);
                 updateAllItems(gui, vPlayer);
-                player.getWorld().playSound(player, Sound.BLOCK_ANVIL_USE, 1, 1);
+                Util.playAnvilHit(player);
                 player.sendMessage(Util.colorize("&aYou rerolled your daily potion effects! You have &6" + vPlayer.getRerollCount() + "&a rerolls left."));
             }
         });
@@ -362,14 +362,14 @@ public class DailyCreator {
             double hours = (Util.timeTillMidnightInMs()) / 1000.0 / 60.0 / 60.0;
             if (vPlayer.getRerollCount() <= 1) {
                 player.sendMessage(Util.colorize("&cYou dont have enough rerolls!"));
-                player.sendMessage(Util.colorize("&cGet more in " + MathUtils.round(24f - (float) hours) + "&c hours. &7(&e" + Util.displayNextTime() + "&7)"));
+                player.sendMessage(Util.colorize("&cGet more in &e" + Util.displayNextTime() + "&c."));
                 player.getWorld().playSound(player, Sound.ENTITY_WOLF_HOWL, 1, 1);
             } else {
                 vPlayer.decreaseReroll();
                 vPlayer.decreaseReroll();
                 dailyRewards.get(player.getUniqueId()).randomizeAll(vPlayer);
                 updateAllItems(gui, vPlayer);
-                player.getWorld().playSound(player, Sound.BLOCK_ANVIL_USE, 1, 1);
+                Util.playAnvilHit(player);
                 player.sendMessage(Util.colorize("&aYou rerolled all options! You have &6" + vPlayer.getRerollCount() + "&a rerolls left."));
             }
         });
@@ -504,7 +504,7 @@ public class DailyCreator {
             player.sendMessage(Util.colorize("&6 - &a" + dailyRewards.get(uuid).getExpLevels() + "&7 Exp Level(s)"));
             player.sendMessage(Util.colorize("&b&m---------------------------------"));
             dailyRewards.get(player.getUniqueId()).setClaimed(true);
-            player.getWorld().playSound(player, Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+            Util.playLevelupSound(player);
 
             gui.close(player);
         });
@@ -610,7 +610,7 @@ public class DailyCreator {
         gui.setItem(3,5, ItemBuilder.from(Material.BARRIER).name(Util.colorizeComponent("&cClose")).asGuiItem(event -> {
             for (HumanEntity viewer : new ArrayList<>(event.getViewers())) {
                 viewer.closeInventory();
-                viewer.getWorld().playSound(viewer, Sound.BLOCK_WOODEN_DOOR_CLOSE, 1, 1);
+                Util.playWoodenDoorClose(viewer);
             }
         }));
     }

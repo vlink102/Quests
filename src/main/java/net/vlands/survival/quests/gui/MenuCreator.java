@@ -7,6 +7,7 @@ import net.vlands.survival.quests.internal.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -52,7 +53,7 @@ public class MenuCreator {
         gui.setOutsideClickAction(event -> {
             for (HumanEntity viewer : new ArrayList<>(event.getViewers())) {
                 viewer.closeInventory();
-                viewer.getWorld().playSound(viewer, Sound.BLOCK_WOODEN_DOOR_CLOSE, 1, 1);
+                Util.playWoodenDoorClose(viewer);
             }
         });
     }
@@ -61,7 +62,7 @@ public class MenuCreator {
         gui.addSlotAction(6,5, event -> {
             for (HumanEntity viewer : new ArrayList<>(event.getViewers())) {
                 viewer.closeInventory();
-                viewer.getWorld().playSound(viewer, Sound.BLOCK_WOODEN_DOOR_CLOSE, 1, 1);
+                Util.playWoodenDoorClose(viewer);
             }
         });
         addClosedItem(gui);
@@ -70,7 +71,8 @@ public class MenuCreator {
     private void addNextAction(Gui gui, Gui next) {
         gui.addSlotAction(6,6, event -> {
             next.open(event.getWhoClicked());
-            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1, 1);
+            Entity clicker = event.getWhoClicked();
+            Util.playUISound(clicker);
         });
         addNextItem(gui);
     }
@@ -78,7 +80,9 @@ public class MenuCreator {
     private void addPreviousAction(Gui gui, Gui previous) {
         gui.addSlotAction(6,4, event -> {
             previous.open(event.getWhoClicked());
-            event.getWhoClicked().getWorld().playSound(event.getWhoClicked(), Sound.UI_BUTTON_CLICK, 1, 1);
+
+            Entity clicker = event.getWhoClicked();
+            Util.playUISound(clicker);
         });
         addPreviousItem(gui);
     }
@@ -150,7 +154,7 @@ public class MenuCreator {
                 loot.claimRewards(plugin, player);
                 gui.updateItem(event.getSlot(), loot.toItemStack(plugin));
             } else {
-                player.getWorld().playSound(player, Sound.ITEM_FLINTANDSTEEL_USE, 1, 1);
+                Util.playFlintAndSteel(player);
             }
         }
     }
@@ -161,7 +165,7 @@ public class MenuCreator {
                 quest.claimRewards(plugin, player);
                 gui.updateItem(event.getSlot(), quest.toItemStack(plugin));
             } else {
-                player.getWorld().playSound(player, Sound.ITEM_FLINTANDSTEEL_USE, 1, 1);
+                Util.playFlintAndSteel(player);
             }
         }
     }
