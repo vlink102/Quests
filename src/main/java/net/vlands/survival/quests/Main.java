@@ -15,6 +15,7 @@ import lombok.Getter;
 import net.luckperms.api.LuckPerms;
 import net.vlands.survival.quests.gui.DailyCreator;
 import net.vlands.survival.quests.gui.MenuCreator;
+import net.vlands.survival.quests.gui.RandomCreator;
 import net.vlands.survival.quests.internal.*;
 import net.vlands.survival.quests.listeners.*;
 import net.vlands.survival.quests.quests.*;
@@ -65,8 +66,11 @@ public final class Main extends JavaPlugin implements Listener {
     public static final String SERVER_ID = "Survival";
     public static final PermissionsManager preferredManager = PermissionsManager.LUCKPERMS;
 
+    @Getter
     private MenuCreator menuCreator;
     private DailyCreator dailyCreator;
+    @Getter
+    private RandomCreator randomCreator;
 
     @Getter private RomanNumber number;
 
@@ -112,6 +116,7 @@ public final class Main extends JavaPlugin implements Listener {
         manager = new QuestsManager(this);
         menuCreator = new MenuCreator(this);
         dailyCreator = new DailyCreator(this);
+        randomCreator = new RandomCreator(this);
         slotMap = new SlotMap();
         number = new RomanNumber();
 
@@ -526,6 +531,9 @@ public final class Main extends JavaPlugin implements Listener {
             return true;
         } else if (args[0].equalsIgnoreCase("daily")) {
             dailyCreator.openDaily(player);
+            return true;
+        } else if (args[0].equalsIgnoreCase("hourly")) {
+            randomCreator.preloadRandomQuestGui(player.getUniqueId()).open(player);
             return true;
         } else {
             if (player.hasPermission("vlands.quests.admin")) {

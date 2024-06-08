@@ -136,7 +136,13 @@ public class MenuCreator {
         setItem(gui, loot);
     }
 
-    private void setItem(Gui gui, PlayerQuest quest) {
+    public void setItem(Gui gui, Slot slot, PlayerQuest quest) {
+        quest.updateDailyStatus(plugin, quest.getBind());
+
+        gui.updateItem(slot.row(), slot.column(), ItemBuilder.from(quest.toItemStack(plugin)).asGuiItem(event -> updateItem(event, gui, quest)));
+    }
+
+    public void setItem(Gui gui, PlayerQuest quest) {
         Slot slot = plugin.getSlotMap().getLocation(quest.getQuest().getId());
         quest.updateStatus(plugin, quest.getBind());
         gui.updateItem(slot.row(), slot.column(), ItemBuilder.from(quest.toItemStack(plugin)).asGuiItem(event -> updateItem(event, gui, quest)));

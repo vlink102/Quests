@@ -10,6 +10,7 @@ import net.luckperms.api.context.DefaultContextKeys;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.Node;
+import net.minecraft.commands.ICompletionProvider;
 import net.vlands.survival.quests.Main;
 import net.vlands.survival.quests.rewards.ExpReward;
 import net.vlands.survival.quests.rewards.ItemReward;
@@ -28,6 +29,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.scoreboard.ScoreboardManager;
 
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalAmount;
@@ -65,6 +67,29 @@ public class PlayerQuest {
 
     public void setLore(List<String> lore) {
         this.lore = lore;
+    }
+
+    public void updateDailyStatus(Main plugin, UUID uuid) {
+        if (plugin.getRandomCreator().getClaimed().contains(uuid)) {
+            status = Status.CLAIMED;
+            return;
+        }
+        if (plugin.getRandomCreator().isCompleted()) {
+            status = Status.COMPLETED;
+            plugin.getRandomCreator().setCompleted(true);
+            return;
+        }
+        if (value > 0) {
+            status = Status.IN_PROGRESS;
+        } else {
+            status = Status.VIEWABLE;
+        }
+
+        if (value >= quest.getObjective().getMaxValue()) {
+            status = Status.COMPLETED;
+            plugin.getRandomCreator().setCompleted(true);
+            updateDailyQuest(plugin);
+        }
     }
 
     public void updateStatus(Main plugin, UUID uuid) {
@@ -125,6 +150,11 @@ public class PlayerQuest {
         for (PlayerLoot playerLoot : thisPlayer.getLootList()) {
             playerLoot.updateStatus(plugin, playerLoot.getBind());
         }
+    }
+
+    public static void updateDailyQuest(Main plugin) {
+        PlayerQuest quest = plugin.getRandomCreator().getCurrentQuest();
+        quest.updateDailyStatus(plugin, quest.getBind());
     }
 
     public void claimRewards(Main plugin, Player player) {
@@ -253,104 +283,120 @@ public class PlayerQuest {
     }
 
     public static String updateDescription(Objective objective, boolean travelType, boolean dieType) {
-        if (travelType || dieType || objective.getType() == Objective.Type.KILL || objective.getType() == Objective.Type.MINE || objective.getType() == Objective.Type.PLACE) {
-            if (travelType) return (Util.colorize("&7" + ((Objective.TravelType) objective.getRelative()[0]).getPrettyName() + "&a " + objective.getMaxValue() + "&7 blocks."));
-            if (dieType) {
-                if (objective.getRelative()[0] == Objective.DieType.ENTITY_ATTACK) {
-                    if (objective.getRelative().length == 1) {
-                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(Util.capitalize("entity")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    } else if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof EntityType type) {
-                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(Util.capitalize(type.toString().toLowerCase().replace("_", " "))) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    }
-                } else if (objective.getRelative()[0] == Objective.DieType.PROJECTILE) {
-                    if (objective.getRelative().length == 3 && objective.getRelative()[1] instanceof Objective.ProjectileType type && objective.getRelative()[2] instanceof EntityType shooter) {
-                        String[] stuff = ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###");
-                        return (Util.colorize("&7" + stuff[0] + " " + Util.vowelModify(type.getType().toString().toLowerCase().replace("_", " ")) + " " + stuff[2] + " " + Util.vowelModify(Util.capitalize(shooter.toString().toLowerCase().replace("_", " "))) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    } else if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof Objective.ProjectileType type) {
-                        String[] stuff = ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###");
-                        return (Util.colorize("&7" + stuff[0] + " " + Util.vowelModify(type.getType().toString().toLowerCase().replace("_", " ")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    } else if (objective.getRelative().length == 1) {
-                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " a projectile &a" + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    }
-                } else if (objective.getRelative()[0] == Objective.DieType.CONTACT) {
-                    if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof Objective.ContactType type) {
-                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(type.getMaterial().toString().toLowerCase().replace("_", " ")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    } else if (objective.getRelative().length == 1) {
-                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " a block &a" + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
-                    }
-                } else {
-                    return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName() + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+        if (Arrays.asList(Objective.Type.values()).contains(objective.getType())) {
+            switch (objective.getType()) {
+                case TRAVEL -> {
+                    return (Util.colorize("&7" + ((Objective.TravelType) objective.getRelative()[0]).getPrettyName() + "&a " + objective.getMaxValue() + "&7 blocks."));
                 }
-            }
-            if (objective.getType() == Objective.Type.KILL) {
-                if (objective.getRelative().length >= 1) {
-                    if (objective.getRelative().length >= 2) {
-                        if (objective.getRelative().length >= 3) {
-                            if (objective.getRelative()[0] == EntityType.PLAYER && objective.getRelative()[1] instanceof Material material && objective.getRelative()[2] instanceof Objective.KillPlayerType killPlayerType) {
-                                switch (killPlayerType) {
-                                    case SINGLE -> {
+                case DIE -> {
+                    if (objective.getRelative()[0] == Objective.DieType.ENTITY_ATTACK) {
+                        if (objective.getRelative().length == 1) {
+                            return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(Util.capitalize("entity")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        } else if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof EntityType type) {
+                            return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(Util.capitalize(type.toString().toLowerCase().replace("_", " "))) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        }
+                    } else if (objective.getRelative()[0] == Objective.DieType.PROJECTILE) {
+                        if (objective.getRelative().length == 3 && objective.getRelative()[1] instanceof Objective.ProjectileType type && objective.getRelative()[2] instanceof EntityType shooter) {
+                            String[] stuff = ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###");
+                            return (Util.colorize("&7" + stuff[0] + " " + Util.vowelModify(type.getType().toString().toLowerCase().replace("_", " ")) + " " + stuff[2] + " " + Util.vowelModify(Util.capitalize(shooter.toString().toLowerCase().replace("_", " "))) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        } else if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof Objective.ProjectileType type) {
+                            String[] stuff = ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###");
+                            return (Util.colorize("&7" + stuff[0] + " " + Util.vowelModify(type.getType().toString().toLowerCase().replace("_", " ")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        } else if (objective.getRelative().length == 1) {
+                            return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " a projectile &a" + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        }
+                    } else if (objective.getRelative()[0] == Objective.DieType.CONTACT) {
+                        if (objective.getRelative().length == 2 && objective.getRelative()[1] instanceof Objective.ContactType type) {
+                            return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " " + Util.vowelModify(type.getMaterial().toString().toLowerCase().replace("_", " ")) + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        } else if (objective.getRelative().length == 1) {
+                            return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName().split("###")[0] + " a block &a" + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                        }
+                    } else {
+                        return (Util.colorize("&7" + ((Objective.DieType) objective.getRelative()[0]).getPrettyName() + "&a " + objective.getMaxValue() + "&7 " + Util.toPlural("time", objective.getMaxValue()) + "."));
+                    }
+                }
+                case KILL -> {
+                    if (objective.getRelative().length >= 1) {
+                        if (objective.getRelative().length >= 2) {
+                            if (objective.getRelative().length >= 3) {
+                                if (objective.getRelative()[0] == EntityType.PLAYER && objective.getRelative()[1] instanceof Material material && objective.getRelative()[2] instanceof Objective.KillPlayerType killPlayerType) {
+                                    switch (killPlayerType) {
+                                        case SINGLE -> {
+                                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("player", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
+                                        }
+                                        case DIFFERENT -> {
+                                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 different " + Util.toPlural("player", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
+                                        }
+                                    }
+                                }
+                            } else if (objective.getRelative().length == 2) {
+                                if (objective.getRelative()[0] instanceof EntityType entityType && objective.getRelative()[1] instanceof Material material) {
+                                    if (entityType == EntityType.PLAYER) {
                                         return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("player", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
+                                    } else {
+                                        return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural(entityType.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
                                     }
-                                    case DIFFERENT -> {
-                                        return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 different " + Util.toPlural("player", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
+                                } else if (objective.getRelative()[0] == EntityType.PLAYER && objective.getRelative()[1] instanceof Objective.KillPlayerType killPlayerType) {
+                                    switch (killPlayerType) {
+                                        case DIFFERENT -> {
+                                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 different " + Util.toPlural("player", objective.getMaxValue()) + ".");
+                                        }
+                                        case SINGLE -> {
+                                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("player", objective.getMaxValue()) + ".");
+                                        }
                                     }
                                 }
                             }
-                        } else if (objective.getRelative().length == 2) {
-                            if (objective.getRelative()[0] instanceof EntityType entityType && objective.getRelative()[1] instanceof Material material) {
-                                if (entityType == EntityType.PLAYER) {
-                                    return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("player", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
-                                } else {
-                                    return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural(entityType.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
-                                }
-                            } else if (objective.getRelative()[0] == EntityType.PLAYER && objective.getRelative()[1] instanceof Objective.KillPlayerType killPlayerType) {
-                                switch (killPlayerType) {
-                                    case DIFFERENT -> {
-                                        return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 different " + Util.toPlural("player", objective.getMaxValue()) + ".");
-                                    }
-                                    case SINGLE -> {
-                                        return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("player", objective.getMaxValue()) + ".");
-                                    }
-                                }
+                        } else if (objective.getRelative().length == 1) {
+                            if (objective.getRelative()[0] instanceof EntityType entityType) {
+                                return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural(entityType.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + ".");
+                            } else if (objective.getRelative()[0] instanceof Material material) {
+                                return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("entity", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
                             }
                         }
+                    } else if (objective.getRelative().length == 0) {
+                        return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("entity", objective.getMaxValue()) + ".");
+                    }
+                }
+                case PLACE -> {
+                    if (objective.getRelative().length == 0) {
+                        return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()));
                     } else if (objective.getRelative().length == 1) {
-                        if (objective.getRelative()[0] instanceof EntityType entityType) {
-                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural(entityType.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + ".");
-                        } else if (objective.getRelative()[0] instanceof Material material) {
-                            return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("entity", objective.getMaxValue()) + " with " + Util.vowelModify(material.toString().toLowerCase().replace("_", " ")) + ".");
+                        if (objective.getRelative()[0] instanceof Material material) {
+                            return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()));
+                        }
+                    } else if (objective.getRelative().length == 2) {
+                        if (objective.getRelative()[0] instanceof Material material && objective.getRelative()[1] instanceof Material material1) {
+                            return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " on " + Util.vowelModify(material1.toString().toLowerCase().replace("_", " ")));
                         }
                     }
-                } else if (objective.getRelative().length == 0) {
-                    return Util.colorize("&7Kill &a" + objective.getMaxValue() + "&7 " + Util.toPlural("entity", objective.getMaxValue()) + ".");
                 }
-            }
-            if (objective.getType() == Objective.Type.PLACE) {
-                if (objective.getRelative().length == 0) {
-                    return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()));
-                } else if (objective.getRelative().length == 1) {
-                    if (objective.getRelative()[0] instanceof Material material) {
-                        return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()));
-                    }
-                } else if (objective.getRelative().length == 2) {
-                    if (objective.getRelative()[0] instanceof Material material && objective.getRelative()[1] instanceof Material material1) {
-                        return Util.colorize("&7Place &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " on " + Util.vowelModify(material1.toString().toLowerCase().replace("_", " ")));
+                case MINE -> {
+                    if (objective.getRelative().length == 0) {
+                        return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()) + ".");
+                    } else if (objective.getRelative().length == 1) {
+                        if (objective.getRelative()[0] instanceof Material material) {
+                            return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()));
+                        } else if (objective.getRelative()[1] instanceof ItemStack itemStack) {
+                            return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()) + " with " + Util.vowelModify(itemStack.getType().toString().toLowerCase().replace("_", " ")));
+                        }
+                    } else if (objective.getRelative().length == 2) {
+                        if (objective.getRelative()[0] instanceof ItemStack itemStack && objective.getRelative()[1] instanceof Material material) {
+                            return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " with " + Util.vowelModify(itemStack.getType().toString().toLowerCase().replace("_", " ")));
+                        }
                     }
                 }
-            }
-            if (objective.getType() == Objective.Type.MINE) {
-                if (objective.getRelative().length == 0) {
-                    return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()) + ".");
-                } else if (objective.getRelative().length == 1) {
-                    if (objective.getRelative()[0] instanceof Material material) {
-                        return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()));
-                    } else if (objective.getRelative()[1] instanceof ItemStack itemStack) {
-                        return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural("block", objective.getMaxValue()) + " with " + Util.vowelModify(itemStack.getType().toString().toLowerCase().replace("_", " ")));
-                    }
-                } else if (objective.getRelative().length == 2) {
-                    if (objective.getRelative()[0] instanceof ItemStack itemStack && objective.getRelative()[1] instanceof Material material) {
-                        return Util.colorize("&7Mine &a" + objective.getMaxValue() + "&7 " + Util.toPlural(material.toString().toLowerCase().replace("_", " "), objective.getMaxValue()) + " with " + Util.vowelModify(itemStack.getType().toString().toLowerCase().replace("_", " ")));
-                    }
+                case BREED, TAME, FEED -> {
+                    return String.valueOf(objective.getType() + " | " + objective.getMaxValue() + " | " + Arrays.deepToString(objective.getRelative()));
+                }
+                case DRINK, EAT, COOK -> {
+                    return String.valueOf(objective.getType() + " | " + objective.getMaxValue() + " | " + Arrays.deepToString(objective.getRelative()));
+                }
+                case CRAFT -> {
+                    return String.valueOf(objective.getType() + " | " + objective.getMaxValue() + " | " + Arrays.deepToString(objective.getRelative()));
+                }
+                case BREW -> {
+                    return String.valueOf(objective.getType() + " | " + objective.getMaxValue() + " | " + Arrays.deepToString(objective.getRelative()));
                 }
             }
         } else {
