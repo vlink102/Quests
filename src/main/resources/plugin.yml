@@ -13,3 +13,6 @@ commands:
   quests:
     description: VLands Survival quests command
     usage: /<command>
+softdepend:
+  - AquaCore
+  - LuckPerms

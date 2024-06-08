@@ -1,19 +1,33 @@
 package net.vlands.survival.quests.internal;
 
+import org.bukkit.ChatColor;
+
 import java.util.Arrays;
 import java.util.StringJoiner;
 
-public abstract class Quest {
+public class Quest {
+    private final int id;
     private final String internalName;
     private final String prettyName;
+    private final int unlockCount;
     private final Objective objective;
-    private final Reward[] rewards;
+    private final Object[] rewards;
 
-    public Quest(String internalName, String prettyName, Objective objective, Reward... rewards) {
-        this.internalName = internalName;
+    public Quest(int id, String internalName, String prettyName, int unlockCount, Objective objective, Object... rewards) {
+        this.id = id;
         this.prettyName = prettyName;
+        this.internalName = ChatColor.stripColor(Util.colorize(prettyName)).toLowerCase().replaceAll("[^a-zA-Z\\d]", "");
+        this.unlockCount = unlockCount;
         this.objective = objective;
         this.rewards = rewards;
+    }
+
+    public int getUnlockCount() {
+        return unlockCount;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getInternalName() {
@@ -25,7 +39,7 @@ public abstract class Quest {
     public Objective getObjective() {
         return objective;
     }
-    public Reward[] getRewards() {
+    public Object[] getRewards() {
         return rewards;
     }
 
